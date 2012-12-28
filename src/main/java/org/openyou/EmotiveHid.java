@@ -4,6 +4,7 @@ package org.openyou;
 import com.codeminders.hidapi.*;
 import lombok.extern.java.Log;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,8 +26,10 @@ import static java.lang.String.format;
 final class EmotiveHid implements Closeable {
     static final int VENDOR_ID = 8609;
     static final int PRODUCT_ID = 1;
-    static final int BUFSIZE = 32;
+    static final int BUFSIZE = 32; // at 128hz
     static final int TIMEOUT = 1000;
+
+    static final boolean research = false;
 
     private static final List<byte[]> supported = new ArrayList<byte[]>();
 
@@ -79,6 +82,55 @@ final class EmotiveHid implements Closeable {
         if (n != BUFSIZE)
             throw new IOException(format("Bad Packet: (%s) %s", n, Arrays.toString(buf)));
         return buf;
+    }
+
+    /**
+     * @return the crypto key for this device.
+     * @throws IOException
+     */
+    public SecretKeySpec getKey() throws IOException {
+        String serial = emotive.getSerialNumberString();
+        if (!serial.startsWith("SN") || serial.length() != 16)
+            throw new IOException("Bad serial: " + serial);
+
+        byte[] raw = serial.getBytes();
+        assert raw.length == 16;
+        byte[] bytes = new byte[16];
+//        bytes[0] = raw[15];
+//        bytes[1] = 0;
+//        bytes[2] = raw[14];
+//        bytes[3] = research ? (byte) 54 : 48;
+//        bytes[4] = raw[13];
+//        bytes[5] = research ? (byte) 10 : 0;
+//        bytes[6] = raw[12];
+//        bytes[7] = research ? (byte) 42 : 54;
+//        bytes[8] = raw[15];
+//        bytes[9] = research ? (byte) 0 : 10;
+//        bytes[10] = raw[14];
+//        bytes[11] = research ? (byte) 48 : 42;
+//        bytes[12] = raw[13];
+//        bytes[13] = 0;
+//        bytes[14] = raw[12];
+//        bytes[15] = 50;
+
+        bytes[0] = raw[15];
+        bytes[1] = 0;
+        bytes[2] = raw[14];
+        bytes[3] = research ? 'H' : 'T';
+        bytes[4] = research ? raw[15]: raw[13];
+        bytes[5] = research ? 0 : 10;
+        bytes[6] = research ? raw[14]: raw[12];
+        bytes[7] = research ? 'T' : 'B';
+        bytes[8] = research ? raw[13]: raw[15];
+        bytes[9] = research ? 10 : 0;
+        bytes[10] = research ? raw[12]: raw[14];
+        bytes[11] = research ? 'B' : 'H';
+        bytes[12] = raw[13];
+        bytes[13] = 0;
+        bytes[14] = raw[12];
+        bytes[15] = 'P';
+
+        return new SecretKeySpec(bytes, "AES");
     }
 
     // workaround http://code.google.com/p/javahidapi/issues/detail?id=40
