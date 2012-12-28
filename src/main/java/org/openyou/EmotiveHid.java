@@ -1,27 +1,37 @@
 /* Copyright Samuel Halliday 2012 */
 package org.openyou;
 
-import com.codeminders.hidapi.ClassPathLibraryLoader;
-import com.codeminders.hidapi.HIDDevice;
-import com.codeminders.hidapi.HIDDeviceInfo;
-import com.codeminders.hidapi.HIDManager;
+import com.codeminders.hidapi.*;
+import lombok.extern.java.Log;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeoutException;
+
+import static java.lang.String.format;
 
 /**
+ * Wrapper for the low level HIDAPI to access an Emotive EEG.
+ * <p/>
+ * Supported devices are discovered on construction and a
+ * poll is provided to obtain raw packets.
+ *
  * @author Sam Halliday
  */
-class EmotiveHid {
+@Log
+final class EmotiveHid implements Closeable {
+    static final int VENDOR_ID = 8609;
+    static final int PRODUCT_ID = 1;
+    static final int BUFSIZE = 32;
+    static final int TIMEOUT = 1000;
+
     private static final List<byte[]> supported = new ArrayList<byte[]>();
-    private static final Logger log = Logger.getLogger(EmotiveHid.class.getName());
 
     static {
         try {
-//            System.loadLibrary("hidapi-jni");
             ClassPathLibraryLoader.loadNativeHIDLibrary();
             supported.add(new byte[]{33, -1, 31, -1, 30, 0, 0, 0});
         } catch (Exception e) {
@@ -29,33 +39,50 @@ class EmotiveHid {
         }
     }
 
-    private static final int VENDOR_ID = 8609;
-    private static final int PRODUCT_ID = 1;
-    private static final int BUFSIZE = 32;
+    private final HIDDevice emotive;
 
-    public static void main(String[] args) throws IOException {
-
-        EmotiveHid tester = new EmotiveHid();
-
-        HIDDevice emotive = tester.findEmotive();
-
-        byte[] buf = new byte[BUFSIZE];
-        int n = 0;
+    public EmotiveHid() throws IOException {
+        emotive = findEmotive();
         emotive.enableBlocking();
-        while (n != -1) {
-            n = emotive.read(buf);
-            for (int i = 0; i < n; i++) {
-                int v = buf[i] & 0xFF;
-                String hs = Integer.toHexString(v);
-                System.out.print(hs + " ");
-            }
-            System.err.println("");
-        }
-
-        System.exit(0);
     }
 
-    public List<HIDDeviceInfo> findDevices(int vendor, int product) throws IOException {
+    @Override
+    public void close() throws IOException {
+        emotive.close();
+    }
+
+    @Override
+    public void finalize() throws Throwable {
+        synchronized (this) {
+            close();
+            super.finalize();
+        }
+    }
+
+    /**
+     * Forwards to {@link #poll(byte[])} with a newly allocated buffer.
+     */
+    public byte[] poll() throws TimeoutException, IOException {
+        return poll(new byte[BUFSIZE]);
+    }
+
+    /**
+     * @param buf use the supplied buffer.
+     * @throws java.io.IOException if there was no response from the Emotive.
+     * @throws TimeoutException    which may indicate that the Emotive is not connected.
+     */
+    public byte[] poll(byte[] buf) throws TimeoutException, IOException {
+        assert buf.length == BUFSIZE;
+        int n = emotive.readTimeout(buf, TIMEOUT);
+        if (n == 0)
+            throw new TimeoutException("No response.");
+        if (n != BUFSIZE)
+            throw new IOException(format("Bad Packet: (%s) %s", n, Arrays.toString(buf)));
+        return buf;
+    }
+
+    // workaround http://code.google.com/p/javahidapi/issues/detail?id=40
+    private List<HIDDeviceInfo> findDevices(int vendor, int product) throws IOException {
         HIDManager manager = HIDManager.getInstance();
         HIDDeviceInfo[] infos = manager.listDevices();
         List<HIDDeviceInfo> devs = new ArrayList<HIDDeviceInfo>(infos.length);
@@ -66,7 +93,7 @@ class EmotiveHid {
         return devs;
     }
 
-    public HIDDevice findEmotive() throws IOException {
+    private HIDDevice findEmotive() throws IOException {
         List<HIDDeviceInfo> infos = findDevices(VENDOR_ID, PRODUCT_ID);
         for (HIDDeviceInfo info : infos) {
             HIDDevice dev = info.open();
@@ -74,7 +101,11 @@ class EmotiveHid {
                 byte[] report = new byte[9];
                 int size = dev.getFeatureReport(report);
                 byte[] result = Arrays.copyOf(report, size);
-                log.info("Found " + dev.getProductString() + " with report: " + Arrays.toString(result));
+                log.info(format("Found (%s) %s [%s] with report: %s",
+                        dev.getManufacturerString(),
+                        dev.getProductString(),
+                        dev.getSerialNumberString(),
+                        Arrays.toString(result)));
                 for (byte[] check : supported) {
                     if (Arrays.equals(check, result))
                         return dev;
@@ -84,8 +115,7 @@ class EmotiveHid {
                 dev.close();
             }
         }
-        throw new UnsupportedOperationException("Create a support request with your 'report' info (above) on https://github.com/openyou/emokit/issues");
+        throw new HIDDeviceNotFoundException("Send all this information to https://github.com/openyou/emokit/issues");
     }
-
 
 }
