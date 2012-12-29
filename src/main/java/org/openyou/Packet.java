@@ -134,7 +134,6 @@ public final class Packet {
             builder.append(getQuality(sensor));
             builder.append(")");
         }
-        builder.append("\n");
         return builder.toString();
     }
 
