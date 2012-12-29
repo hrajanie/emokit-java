@@ -28,9 +28,16 @@ import java.util.logging.Level;
 public final class Emotiv implements Iterable<Packet>, Closeable {
 
     public static void main(String[] args) throws Exception {
+        EmotivSession session = new EmotivSession();
+        session.setName("My Session");
+        session.setNotes("My Notes");
+
         Emotiv emotiv = new Emotiv();
         for (Packet packet : emotiv) {
-            log.info(packet.toString());
+            EmotivDatum datum = EmotivDatum.fromPacket(packet);
+            datum.setSession(session);
+
+            log.info(datum.toString());
         }
     }
 
