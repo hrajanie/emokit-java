@@ -10,7 +10,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <exec.mainClass>org.openyou.EmotiveHid</exec.mainClass>
+        <exec.mainClass>org.openyou.Emotive</exec.mainClass>
         <!--<exec.args>-ea -Djava.util.logging.config.file=logging.properties</exec.args>-->
     </properties>
 
