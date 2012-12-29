@@ -28,7 +28,7 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
     public static void main(String[] args) throws Exception {
         Emotiv emotiv = new Emotiv();
         for (Packet packet : emotiv) {
-            Emotiv.log.info(packet.toString());
+            log.info(packet.toString());
         }
     }
 
@@ -80,7 +80,7 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                         // the counter is used to mixin battery and quality levels
                         byte counter = decrypted[0];
                         if (counter != lastCounter + 1 && lastCounter != 127)
-                            Emotiv.log.config("missed a packet");
+                            log.config("missed a packet");
 
                         if (counter < 0) {
                             lastCounter = -1;
@@ -99,14 +99,16 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                         iterator.produce(packet);
 
                         long end = System.currentTimeMillis();
+                        log.config("Decryption time: " + (end - start));
                         if ((end - start) > 7) {
-                            Emotiv.log.severe("Decryption is unsustainable on your platform: " + (end - start));
+                            log.severe("Decryption is unsustainable on your platform: " + (end - start));
                         } else if ((end - start) > 4) {
-                            Emotiv.log.info("Decryption took a worryingly long time: " + (end - start));
+                            log.info("Decryption took a worryingly long time: " + (end - start));
                         }
                     }
                 } catch (Exception e) {
-                    Emotiv.log.logp(Level.SEVERE, Emotiv.class.getName(), "iterator", "Problem when polling", e);
+                    log.log(Level.SEVERE, "Problem when polling", e);
+                    iterator.close();
                     try {
                         close();
                     } catch (IOException ignored) {

@@ -21,6 +21,21 @@ Not currently being distributed via Maven Central,
 Clone this repository and install locally using Maven (`mvn install`). If this instructions are beyond you,
 then you are probably not the target audience of this project.
 
+Use
+===
+
+Raw access is through the `org.openyou.Emotiv` class:
+
+```java
+Emotiv emotiv = new Emotiv();
+for (Packet packet : emotiv) {
+    ...
+}
+```
+
+the special `Iterator` will continue until the EEG device is disconnected, or there are IO problems.
+If that happens, a new `Emotiv` instance can be obtained and polled.
+
 
 Donations
 =========

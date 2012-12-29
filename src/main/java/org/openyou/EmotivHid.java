@@ -137,7 +137,7 @@ final class EmotivHid implements Closeable {
                 byte[] report = new byte[9];
                 int size = dev.getFeatureReport(report);
                 byte[] result = Arrays.copyOf(report, size);
-                EmotivHid.log.info(format("Found (%s) %s [%s] with report: %s",
+                log.info(format("Found (%s) %s [%s] with report: %s",
                         dev.getManufacturerString(),
                         dev.getProductString(),
                         dev.getSerialNumberString(),
