@@ -27,13 +27,16 @@ public final class Emotive implements Iterable<Packet>, Closeable {
     public static void main(String[] args) throws Exception {
         Emotive emotive = new Emotive();
         for (Packet packet : emotive) {
-            log.info(packet.toString());
+            //log.info(packet.toString());
+            log.info(String.format("BATTERY %s%%", emotive.getBatteryLevel()));
         }
     }
 
     private final EmotiveHid raw;
     private final AtomicBoolean accessed = new AtomicBoolean();
     private final Cipher cipher;
+
+    private volatile int battery;
 
     /**
      * @throws IOException if there was a problem discovering the device.
@@ -65,15 +68,29 @@ public final class Emotive implements Iterable<Packet>, Closeable {
             public void run() {
                 try {
                     byte[] bytes = new byte[EmotiveHid.BUFSIZE];
+                    byte lastCounter = -1;
                     while (!iterator.stopped()) {
                         raw.poll(bytes);
                         long start = System.currentTimeMillis();
                         byte[] decrypted = decrypt(bytes);
-                        assert decrypted != bytes;
-                        Packet packet = Packet.fromBytes(decrypted);
+                        byte counter = decrypted[0];
+                        if (counter != lastCounter + 1 && lastCounter != 127)
+                            log.config("missed a packet");
+                        if (counter < 0) {
+                            lastCounter = -1;
+                            battery = 0xFF & counter;
+                        } else {
+                            lastCounter = counter;
+                        }
+                        Packet packet = new Packet(start, decrypted);
                         iterator.produce(packet);
                         long end = System.currentTimeMillis();
-                        // TODO: analysis of crypto vs Hz of device
+                        log.info("@bschumacher: " + (end - start));
+                        if ((end - start) > 7) {
+                            log.severe("Decryption is unsustainable on your platform: " + (end - start));
+                        } else if ((end - start) > 5) {
+                            log.info("Decryption took a worryingly long time: " + (end - start));
+                        }
                     }
                 } catch (Exception e) {
                     log.logp(Level.SEVERE, "Emotive.class.getName()", "iterator", "Problem when polling", e);
@@ -91,12 +108,65 @@ public final class Emotive implements Iterable<Packet>, Closeable {
         return iterator;
     }
 
+    /**
+     * @return [0, 100] the percentage level of the battery.
+     */
+    public int getBatteryLevel() {
+        int snapshot = battery;
+        if (snapshot >= 248) return 100;
+        switch (snapshot) {
+            case 247:
+                return 99;
+            case 246:
+                return 97;
+            case 245:
+                return 93;
+            case 244:
+                return 89;
+            case 243:
+                return 85;
+            case 242:
+                return 82;
+            case 241:
+                return 77;
+            case 240:
+                return 72;
+            case 239:
+                return 66;
+            case 238:
+                return 62;
+            case 237:
+                return 55;
+            case 236:
+                return 46;
+            case 235:
+                return 32;
+            case 234:
+                return 20;
+            case 233:
+                return 12;
+            case 232:
+                return 6;
+            case 231:
+                return 4;
+            case 230:
+                return 3;
+            case 229:
+                return 2;
+            case 228:
+            case 227:
+            case 226:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+
     @Override
     public void close() throws IOException {
         raw.close();
     }
 
-    // 128-bit AES in ECB mode, block size of 16 bytes.
     protected byte[] decrypt(byte[] packet) {
         try {
             return cipher.doFinal(packet);
