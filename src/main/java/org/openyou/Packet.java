@@ -14,7 +14,8 @@ import java.util.Map;
  * Contains the sensor data from a single packet of data.
  * <p/>
  * This is not designed for easy persistence: clients are
- * advised to use their own persistable format.
+ * advised to use their own persistent format or convert
+ * to {@link EmotivDatum}.
  *
  * @author Sam Halliday
  * @see <a href="https://github.com/openyou/emokit/blob/master/doc/emotiv_protocol.asciidoc">Emotiv Protocol</a>
@@ -34,15 +35,15 @@ public final class Packet {
         return new Date(timestamp);
     }
 
-    public int getGyroX() {
-        return 0xFF & frame[29] - 102;
+    public Integer getGyroX() {
+        return 0xFF & frame[29];// - 102;
     }
 
-    public int getGyroY() {
-        return 0xFF & frame[30] - 104;
+    public Integer getGyroY() {
+        return 0xFF & frame[30];// - 104;
     }
 
-    public int getSensor(Sensor sensor) {
+    public Integer getSensor(Sensor sensor) {
         if (sensor == Sensor.QUALITY)
             throw new IllegalArgumentException();
         return sensor.apply(frame);
@@ -50,17 +51,14 @@ public final class Packet {
 
     /**
      * @param sensor
-     * @return the quality of the sensor, zero if no data available.
+     * @return the quality of the sensor.
      */
-    public double getQuality(Packet.Sensor sensor) {
+    public Integer getQuality(Packet.Sensor sensor) {
         if (sensor == null)
             throw new NullPointerException();
         if (sensor == Packet.Sensor.QUALITY)
             throw new IllegalArgumentException();
-        Integer result = quality.get(sensor);
-        if (result == null)
-            return 0.0;
-        return result / 540.0;
+        return quality.get(sensor);
     }
 
     /**
