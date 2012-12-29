@@ -1,15 +1,18 @@
-/* Copyright Samuel Halliday 2012 */
+// Copyright Samuel Halliday 2012
 package org.openyou;
 
+import com.google.common.collect.Maps;
 import fommil.utils.ProducerConsumer;
+import lombok.Getter;
 import lombok.extern.java.Log;
+import org.openyou.jpa.EmotivDatum;
+import org.openyou.jpa.EmotivSession;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -28,11 +31,12 @@ import java.util.logging.Level;
 public final class Emotiv implements Iterable<Packet>, Closeable {
 
     public static void main(String[] args) throws Exception {
+        Emotiv emotiv = new Emotiv();
+
         EmotivSession session = new EmotivSession();
         session.setName("My Session");
-        session.setNotes("My Notes");
+        session.setNotes("My Notes for " + emotiv.getSerial());
 
-        Emotiv emotiv = new Emotiv();
         for (Packet packet : emotiv) {
             EmotivDatum datum = EmotivDatum.fromPacket(packet);
             datum.setSession(session);
@@ -41,12 +45,33 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
         }
     }
 
+    /**
+     * Asynchronous listener interface for packets from an emotive.
+     */
+    public interface PacketListener {
+        /**
+         * @param packet
+         */
+        public void receivePacket(Packet packet);
+    }
+
     private final EmotivHid raw;
     private final AtomicBoolean accessed = new AtomicBoolean();
     private final Cipher cipher;
-    private final Map<Packet.Sensor, Integer> quality = new EnumMap<Packet.Sensor, Integer>(Packet.Sensor.class);
+    private final Map<Packet.Sensor, Integer> quality = Maps.newEnumMap(Packet.Sensor.class);
 
     private volatile int battery;
+
+    @Getter(lazy = true)
+    private final String serial = serial();
+
+    private String serial() {
+        try {
+            return raw.getSerial();
+        } catch (IOException e) {
+            return null;
+        }
+    }
 
     /**
      * @throws IOException if there was a problem discovering the device.
@@ -104,7 +129,7 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                             quality.put(channel, reading);
                         }
 
-                        Packet packet = new Packet(start, battery, decrypted, new EnumMap<Packet.Sensor, Integer>(quality));
+                        Packet packet = new Packet(start, battery, decrypted, Maps.newEnumMap(quality));
                         iterator.produce(packet);
 
                         long end = System.currentTimeMillis();

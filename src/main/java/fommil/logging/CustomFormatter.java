@@ -1,4 +1,4 @@
-/* Copyright Samuel Halliday 2008 */
+// Copyright Samuel Halliday 2008
 package fommil.logging;
 
 import java.text.DateFormat;

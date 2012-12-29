@@ -1,4 +1,4 @@
-/* Copyright Samuel Halliday 2012 */
+// Copyright Samuel Halliday 2012
 package fommil.logging;
 
 import java.util.logging.*;

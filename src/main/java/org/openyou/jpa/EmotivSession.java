@@ -1,9 +1,11 @@
-package org.openyou;
+// Copyright Samuel Halliday 2012
+package org.openyou.jpa;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import lombok.Data;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -27,7 +29,7 @@ public class EmotivSession {
     private String notes;
 
     @OneToMany(mappedBy = "session")
-    private Collection<EmotivDatum> data = new ArrayList<EmotivDatum>();
+    private Collection<EmotivDatum> data = Lists.newArrayList();
 
     @Override
     public boolean equals(Object obj) {
@@ -43,8 +45,7 @@ public class EmotivSession {
 
     @Override
     public int hashCode() {
-        if (id == null)
-            throw new NullPointerException("id must be set before @Entity.hashCode can be called");
+        Preconditions.checkNotNull(id, "id must be set before @Entity.hashCode can be called");
         return id.hashCode();
     }
 

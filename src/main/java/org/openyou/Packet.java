@@ -1,4 +1,4 @@
-/* Copyright Samuel Halliday 2012 */
+// Copyright Samuel Halliday 2012
 package org.openyou;
 
 import lombok.AccessLevel;
@@ -8,6 +8,7 @@ import lombok.extern.java.Log;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.Date;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -15,7 +16,7 @@ import java.util.Map;
  * <p/>
  * This is not designed for easy persistence: clients are
  * advised to use their own persistent format or convert
- * to {@link EmotivDatum}.
+ * to {@link org.openyou.jpa.EmotivDatum}.
  *
  * @author Sam Halliday
  * @see <a href="https://github.com/openyou/emokit/blob/master/doc/emotiv_protocol.asciidoc">Emotiv Protocol</a>
@@ -59,6 +60,13 @@ public final class Packet {
         if (sensor == Packet.Sensor.QUALITY)
             throw new IllegalArgumentException();
         return quality.get(sensor);
+    }
+
+    /**
+     * @return
+     */
+    public Map<Sensor, Integer> getQuality() {
+        return new EnumMap<Sensor, Integer>(quality);
     }
 
     /**

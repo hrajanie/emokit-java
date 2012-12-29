@@ -1,6 +1,9 @@
-package org.openyou;
+// Copyright Samuel Halliday 2012
+package org.openyou.jpa;
 
+import com.google.common.base.Preconditions;
 import lombok.Data;
+import org.openyou.Packet;
 import org.openyou.Packet.Sensor;
 
 import javax.persistence.*;
@@ -101,8 +104,7 @@ public class EmotivDatum {
 
     @Override
     public int hashCode() {
-        if (id == null)
-            throw new NullPointerException("id must be set before @Entity.hashCode can be called");
+        Preconditions.checkNotNull(id, "id must be set before @Entity.hashCode can be called");
         return id.hashCode();
     }
 
