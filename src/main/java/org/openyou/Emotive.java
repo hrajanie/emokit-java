@@ -8,7 +8,8 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
@@ -27,14 +28,14 @@ public final class Emotive implements Iterable<Packet>, Closeable {
     public static void main(String[] args) throws Exception {
         Emotive emotive = new Emotive();
         for (Packet packet : emotive) {
-            //log.info(packet.toString());
-            log.info(String.format("BATTERY %s%%", emotive.getBatteryLevel()));
+            log.info(packet.toString());
         }
     }
 
     private final EmotiveHid raw;
     private final AtomicBoolean accessed = new AtomicBoolean();
     private final Cipher cipher;
+    private final Map<Packet.Sensor, Integer> quality = new EnumMap<Packet.Sensor, Integer>(Packet.Sensor.class);
 
     private volatile int battery;
 
@@ -70,25 +71,37 @@ public final class Emotive implements Iterable<Packet>, Closeable {
                     byte[] bytes = new byte[EmotiveHid.BUFSIZE];
                     byte lastCounter = -1;
                     while (!iterator.stopped()) {
+
                         raw.poll(bytes);
+
                         long start = System.currentTimeMillis();
-                        byte[] decrypted = decrypt(bytes);
+                        byte[] decrypted = cipher.doFinal(bytes);
+
+                        // the counter is used to mixin battery and quality levels
                         byte counter = decrypted[0];
                         if (counter != lastCounter + 1 && lastCounter != 127)
                             log.config("missed a packet");
+
                         if (counter < 0) {
                             lastCounter = -1;
                             battery = 0xFF & counter;
                         } else {
                             lastCounter = counter;
                         }
-                        Packet packet = new Packet(start, decrypted);
+
+                        Packet.Sensor channel = getQualityChannel(counter);
+                        if (channel != null) {
+                            int reading = Packet.Sensor.QUALITY.apply(decrypted);
+                            quality.put(channel, reading);
+                        }
+
+                        Packet packet = new Packet(start, battery, decrypted, new EnumMap<Packet.Sensor, Integer>(quality));
                         iterator.produce(packet);
+
                         long end = System.currentTimeMillis();
-                        log.info("@bschumacher: " + (end - start));
                         if ((end - start) > 7) {
                             log.severe("Decryption is unsustainable on your platform: " + (end - start));
-                        } else if ((end - start) > 5) {
+                        } else if ((end - start) > 4) {
                             log.info("Decryption took a worryingly long time: " + (end - start));
                         }
                     }
@@ -108,70 +121,53 @@ public final class Emotive implements Iterable<Packet>, Closeable {
         return iterator;
     }
 
-    /**
-     * @return [0, 100] the percentage level of the battery.
-     */
-    public int getBatteryLevel() {
-        int snapshot = battery;
-        if (snapshot >= 248) return 100;
-        switch (snapshot) {
-            case 247:
-                return 99;
-            case 246:
-                return 97;
-            case 245:
-                return 93;
-            case 244:
-                return 89;
-            case 243:
-                return 85;
-            case 242:
-                return 82;
-            case 241:
-                return 77;
-            case 240:
-                return 72;
-            case 239:
-                return 66;
-            case 238:
-                return 62;
-            case 237:
-                return 55;
-            case 236:
-                return 46;
-            case 235:
-                return 32;
-            case 234:
-                return 20;
-            case 233:
-                return 12;
-            case 232:
-                return 6;
-            case 231:
-                return 4;
-            case 230:
-                return 3;
-            case 229:
-                return 2;
-            case 228:
-            case 227:
-            case 226:
-                return 1;
+    private Packet.Sensor getQualityChannel(byte counter) {
+        if (64 <= counter && counter <= 75) {
+            counter = (byte) (counter - 64);
+        } else if (76 <= counter) {
+            // https://github.com/openyou/emokit/issues/56
+            counter = (byte) ((counter - 76) % 4 + 15);
+        }
+        switch (counter) {
+            case 0:
+                return Packet.Sensor.F3;
+            case 1:
+                return Packet.Sensor.FC5;
+            case 2:
+                return Packet.Sensor.AF3;
+            case 3:
+                return Packet.Sensor.F7;
+            case 4:
+                return Packet.Sensor.T7;
+            case 5:
+                return Packet.Sensor.P7;
+            case 6:
+                return Packet.Sensor.O1;
+            case 7:
+                return Packet.Sensor.O2;
+            case 8:
+                return Packet.Sensor.P8;
+            case 9:
+                return Packet.Sensor.T8;
+            case 10:
+                return Packet.Sensor.F8;
+            case 11:
+                return Packet.Sensor.AF4;
+            case 12:
+                return Packet.Sensor.FC6;
+            case 13:
+                return Packet.Sensor.F4;
+            case 14:
+                return Packet.Sensor.F8;
+            case 15:
+                return Packet.Sensor.AF4;
             default:
-                return 0;
+                return null;
         }
     }
 
     @Override
     public void close() throws IOException {
         raw.close();
-    }
-
-    protected byte[] decrypt(byte[] packet) {
-        try {
-            return cipher.doFinal(packet);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(Arrays.toString(packet), e);
-        }
     }
 }
