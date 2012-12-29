@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 import static java.lang.String.format;
 
 /**
- * Wrapper for the low level HIDAPI to access an Emotive EEG.
+ * Wrapper for the low level HIDAPI to access an Emotiv EEG.
  * <p/>
  * Supported devices are discovered on construction and a
  * poll is provided to obtain raw packets.
@@ -23,7 +23,7 @@ import static java.lang.String.format;
  * @author Sam Halliday
  */
 @Log
-final class EmotiveHid implements Closeable {
+final class EmotivHid implements Closeable {
     static final int VENDOR_ID = 8609;
     static final int PRODUCT_ID = 1;
     static final int BUFSIZE = 32; // at 128hz
@@ -42,16 +42,16 @@ final class EmotiveHid implements Closeable {
         }
     }
 
-    private final HIDDevice emotive;
+    private final HIDDevice device;
 
-    public EmotiveHid() throws IOException {
-        emotive = findEmotive();
-        emotive.enableBlocking();
+    public EmotivHid() throws IOException {
+        device = findEmotiv();
+        device.enableBlocking();
     }
 
     @Override
     public void close() throws IOException {
-        emotive.close();
+        device.close();
     }
 
     @Override
@@ -71,12 +71,12 @@ final class EmotiveHid implements Closeable {
 
     /**
      * @param buf use the supplied buffer.
-     * @throws java.io.IOException if there was no response from the Emotive.
-     * @throws TimeoutException    which may indicate that the Emotive is not connected.
+     * @throws java.io.IOException if there was no response from the Emotiv.
+     * @throws TimeoutException    which may indicate that the Emotiv is not connected.
      */
     public byte[] poll(byte[] buf) throws TimeoutException, IOException {
         assert buf.length == BUFSIZE;
-        int n = emotive.readTimeout(buf, TIMEOUT);
+        int n = device.readTimeout(buf, TIMEOUT);
         if (n == 0)
             throw new TimeoutException("No response.");
         if (n != BUFSIZE)
@@ -89,7 +89,7 @@ final class EmotiveHid implements Closeable {
      * @throws IOException
      */
     public SecretKeySpec getKey() throws IOException {
-        String serial = emotive.getSerialNumberString();
+        String serial = device.getSerialNumberString();
         if (!serial.startsWith("SN") || serial.length() != 16)
             throw new IOException("Bad serial: " + serial);
 
@@ -129,7 +129,7 @@ final class EmotiveHid implements Closeable {
         return devs;
     }
 
-    private HIDDevice findEmotive() throws IOException {
+    private HIDDevice findEmotiv() throws IOException {
         List<HIDDeviceInfo> infos = findDevices(VENDOR_ID, PRODUCT_ID);
         for (HIDDeviceInfo info : infos) {
             HIDDevice dev = info.open();
@@ -137,7 +137,7 @@ final class EmotiveHid implements Closeable {
                 byte[] report = new byte[9];
                 int size = dev.getFeatureReport(report);
                 byte[] result = Arrays.copyOf(report, size);
-                log.info(format("Found (%s) %s [%s] with report: %s",
+                EmotivHid.log.info(format("Found (%s) %s [%s] with report: %s",
                         dev.getManufacturerString(),
                         dev.getProductString(),
                         dev.getSerialNumberString(),

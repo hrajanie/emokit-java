@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 /**
- * Unencrypted access to an Emotive EEG.
+ * Unencrypted access to an Emotiv EEG.
  * <p/>
  * The device is constantly polled in a background thread,
  * filling up a buffer (which could cause the application
@@ -23,16 +23,16 @@ import java.util.logging.Level;
  * @author Sam Halliday
  */
 @Log
-public final class Emotive implements Iterable<Packet>, Closeable {
+public final class Emotiv implements Iterable<Packet>, Closeable {
 
     public static void main(String[] args) throws Exception {
-        Emotive emotive = new Emotive();
-        for (Packet packet : emotive) {
-            log.info(packet.toString());
+        Emotiv emotiv = new Emotiv();
+        for (Packet packet : emotiv) {
+            Emotiv.log.info(packet.toString());
         }
     }
 
-    private final EmotiveHid raw;
+    private final EmotivHid raw;
     private final AtomicBoolean accessed = new AtomicBoolean();
     private final Cipher cipher;
     private final Map<Packet.Sensor, Integer> quality = new EnumMap<Packet.Sensor, Integer>(Packet.Sensor.class);
@@ -42,8 +42,8 @@ public final class Emotive implements Iterable<Packet>, Closeable {
     /**
      * @throws IOException if there was a problem discovering the device.
      */
-    public Emotive() throws IOException {
-        raw = new EmotiveHid();
+    public Emotiv() throws IOException {
+        raw = new EmotivHid();
         try {
             cipher = Cipher.getInstance("AES/ECB/NoPadding");
             SecretKeySpec key = raw.getKey();
@@ -68,7 +68,7 @@ public final class Emotive implements Iterable<Packet>, Closeable {
             @Override
             public void run() {
                 try {
-                    byte[] bytes = new byte[EmotiveHid.BUFSIZE];
+                    byte[] bytes = new byte[EmotivHid.BUFSIZE];
                     byte lastCounter = -1;
                     while (!iterator.stopped()) {
 
@@ -80,7 +80,7 @@ public final class Emotive implements Iterable<Packet>, Closeable {
                         // the counter is used to mixin battery and quality levels
                         byte counter = decrypted[0];
                         if (counter != lastCounter + 1 && lastCounter != 127)
-                            log.config("missed a packet");
+                            Emotiv.log.config("missed a packet");
 
                         if (counter < 0) {
                             lastCounter = -1;
@@ -100,13 +100,13 @@ public final class Emotive implements Iterable<Packet>, Closeable {
 
                         long end = System.currentTimeMillis();
                         if ((end - start) > 7) {
-                            log.severe("Decryption is unsustainable on your platform: " + (end - start));
+                            Emotiv.log.severe("Decryption is unsustainable on your platform: " + (end - start));
                         } else if ((end - start) > 4) {
-                            log.info("Decryption took a worryingly long time: " + (end - start));
+                            Emotiv.log.info("Decryption took a worryingly long time: " + (end - start));
                         }
                     }
                 } catch (Exception e) {
-                    log.logp(Level.SEVERE, "Emotive.class.getName()", "iterator", "Problem when polling", e);
+                    Emotiv.log.logp(Level.SEVERE, Emotiv.class.getName(), "iterator", "Problem when polling", e);
                     try {
                         close();
                     } catch (IOException ignored) {
@@ -115,7 +115,7 @@ public final class Emotive implements Iterable<Packet>, Closeable {
             }
         };
 
-        Thread thread = new Thread(runnable, "Emotive polling and decryption");
+        Thread thread = new Thread(runnable, "Emotiv polling and decryption");
         thread.setDaemon(true);
         thread.start();
         return iterator;

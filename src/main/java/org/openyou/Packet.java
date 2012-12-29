@@ -17,7 +17,7 @@ import java.util.Map;
  * advised to use their own persistable format.
  *
  * @author Sam Halliday
- * @see <a href="https://github.com/openyou/emokit/blob/master/doc/emotiv_protocol.asciidoc">Emotive Protocol</a>
+ * @see <a href="https://github.com/openyou/emokit/blob/master/doc/emotiv_protocol.asciidoc">Emotiv Protocol</a>
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 @Log
