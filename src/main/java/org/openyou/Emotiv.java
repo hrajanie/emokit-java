@@ -4,6 +4,7 @@ package org.openyou;
 import fommil.utils.ProducerConsumer;
 import lombok.extern.java.Log;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.Closeable;
@@ -23,6 +24,7 @@ import java.util.logging.Level;
  * @author Sam Halliday
  */
 @Log
+@NotThreadSafe
 public final class Emotiv implements Iterable<Packet>, Closeable {
 
     public static void main(String[] args) throws Exception {
@@ -126,10 +128,11 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
     private Packet.Sensor getQualityChannel(byte counter) {
         if (64 <= counter && counter <= 75) {
             counter = (byte) (counter - 64);
-        } else if (76 <= counter) {
-            // https://github.com/openyou/emokit/issues/56
-            counter = (byte) ((counter - 76) % 4 + 15);
         }
+        // TODO: https://github.com/fommil/emokit-java/issues/3
+//        else if (76 <= counter) {
+//            counter = (byte) ((counter - 76) % 4 + 15);
+//        }
         switch (counter) {
             case 0:
                 return Packet.Sensor.F3;

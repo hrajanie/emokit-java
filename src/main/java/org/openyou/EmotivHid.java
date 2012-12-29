@@ -4,6 +4,7 @@ package org.openyou;
 import com.codeminders.hidapi.*;
 import lombok.extern.java.Log;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.Closeable;
 import java.io.IOException;
@@ -23,25 +24,27 @@ import static java.lang.String.format;
  * @author Sam Halliday
  */
 @Log
+@NotThreadSafe
 final class EmotivHid implements Closeable {
     static final int VENDOR_ID = 8609;
     static final int PRODUCT_ID = 1;
     static final int BUFSIZE = 32; // at 128hz
     static final int TIMEOUT = 1000;
 
-    static final boolean research = false;
-
-    private static final List<byte[]> supported = new ArrayList<byte[]>();
+    private static final List<byte[]> supportedResearch = new ArrayList<byte[]>();
+    private static final List<byte[]> supportedConsumer = new ArrayList<byte[]>();
 
     static {
         try {
             ClassPathLibraryLoader.loadNativeHIDLibrary();
-            supported.add(new byte[]{33, -1, 31, -1, 30, 0, 0, 0});
+            supportedConsumer.add(new byte[]{33, -1, 31, -1, 30, 0, 0, 0});
+            supportedConsumer.add(new byte[]{-32, -1, 31, -1, 0, 0, 0, 0}); // unconfirmed
         } catch (Exception e) {
             throw new ExceptionInInitializerError(e);
         }
     }
 
+    private volatile boolean research = false;
     private final HIDDevice device;
 
     public EmotivHid() throws IOException {
@@ -60,13 +63,6 @@ final class EmotivHid implements Closeable {
             close();
             super.finalize();
         }
-    }
-
-    /**
-     * Forwards to {@link #poll(byte[])} with a newly allocated buffer.
-     */
-    public byte[] poll() throws TimeoutException, IOException {
-        return poll(new byte[BUFSIZE]);
     }
 
     /**
@@ -100,15 +96,15 @@ final class EmotivHid implements Closeable {
         bytes[0] = raw[15];
         bytes[1] = 0;
         bytes[2] = raw[14];
-        bytes[3] = research ? 'H' : 'T';
-        bytes[4] = research ? raw[15]: raw[13];
-        bytes[5] = research ? 0 : 16;
-        bytes[6] = research ? raw[14]: raw[12];
-        bytes[7] = research ? 'T' : 'B';
-        bytes[8] = research ? raw[13]: raw[15];
-        bytes[9] = research ? 16 : 0;
-        bytes[10] = research ? raw[12]: raw[14];
-        bytes[11] = research ? 'B' : 'H';
+        bytes[3] = research ? (byte)'H' : (byte)'T';
+        bytes[4] = research ? raw[15] : raw[13];
+        bytes[5] = research ? (byte)0 : 16;
+        bytes[6] = research ? raw[14] : raw[12];
+        bytes[7] = research ? (byte)'T' : (byte)'B';
+        bytes[8] = research ? raw[13] : raw[15];
+        bytes[9] = research ? (byte)16 : 0;
+        bytes[10] = research ? raw[12] : raw[14];
+        bytes[11] = research ? (byte)'B' : (byte)'H';
         bytes[12] = raw[13];
         bytes[13] = 0;
         bytes[14] = raw[12];
@@ -142,16 +138,23 @@ final class EmotivHid implements Closeable {
                         dev.getProductString(),
                         dev.getSerialNumberString(),
                         Arrays.toString(result)));
-                for (byte[] check : supported) {
-                    if (Arrays.equals(check, result))
+                for (byte[] check : supportedConsumer) {
+                    if (Arrays.equals(check, result)) {
                         return dev;
+                    }
+                }
+                for (byte[] check : supportedResearch) {
+                    if (Arrays.equals(check, result)) {
+                        research = true;
+                        return dev;
+                    }
                 }
                 dev.close();
             } catch (Exception e) {
                 dev.close();
             }
         }
-        throw new HIDDeviceNotFoundException("Send all this information to https://github.com/openyou/emokit/issues");
+        throw new HIDDeviceNotFoundException("Send all this information to https://github.com/fommil/emokit-java/issues and let us know if you have the 'research' or 'consumer' product.");
     }
 
 }
