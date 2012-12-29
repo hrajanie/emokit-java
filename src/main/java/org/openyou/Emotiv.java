@@ -105,7 +105,6 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                     byte[] bytes = new byte[EmotivHid.BUFSIZE];
                     byte lastCounter = -1;
                     while (!iterator.stopped()) {
-
                         raw.poll(bytes);
 
                         long start = System.currentTimeMillis();
@@ -135,9 +134,7 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                         long end = System.currentTimeMillis();
                         log.config("Decryption time: " + (end - start));
                         if ((end - start) > 7) {
-                            log.severe("Decryption is unsustainable on your platform: " + (end - start));
-                        } else if ((end - start) > 4) {
-                            log.info("Decryption took a worryingly long time: " + (end - start));
+                            log.warning("Decryption took longer than expected: " + (end - start));
                         }
                     }
                 } catch (Exception e) {

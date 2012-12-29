@@ -115,5 +115,6 @@ public class SensorQualityView extends JPanel implements Emotiv.PacketListener {
     @Override
     public void receivePacket(Packet packet) {
         quality = packet.getQuality();
+        repaint();
     }
 }
