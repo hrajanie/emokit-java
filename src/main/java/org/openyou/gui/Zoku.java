@@ -6,10 +6,7 @@ import fommil.persistence.CrudDao;
 import lombok.extern.java.Log;
 import org.openyou.Emotiv;
 import org.openyou.Packet;
-import org.openyou.jpa.EmotivDatum;
-import org.openyou.jpa.EmotivDatumCrud;
-import org.openyou.jpa.EmotivSession;
-import org.openyou.jpa.EmotivSessionCrud;
+import org.openyou.jpa.EmotivJpaController;
 
 import javax.persistence.EntityManagerFactory;
 import javax.swing.*;
@@ -31,7 +28,11 @@ import java.util.logging.Level;
 public class Zoku {
 
     public static void main(String[] args) throws Exception {
+        EntityManagerFactory emf = CrudDao.createEntityManagerFactory("ZokuPU");
+        EmotivJpaController database = new EmotivJpaController(emf);
+
         Emotiv emotive = new Emotiv();
+
 
         JFrame frame = new JFrame("Zoku");
         enableOSXFullscreen(frame);
@@ -47,41 +48,28 @@ public class Zoku {
         frame.add(quality, BorderLayout.CENTER);
 
         BatteryView battery = new BatteryView();
-        GyroView gyro = new GyroView();
-
         sidebar.add(new JLabel("Battery"));
         sidebar.add(battery);
+
+        GyroView gyro = new GyroView();
         sidebar.add(gyro);
+
+        SessionEditor editor = new SessionEditor();
+        editor.setController(database);
+        sidebar.add(editor);
 
         SensorView sensors = new SensorView();
         frame.add(sensors, BorderLayout.SOUTH);
 
         frame.setVisible(true);
 
-        EntityManagerFactory emf = CrudDao.createEntityManagerFactory("ZokuPU");
-        EmotivDatumCrud datumCrud = new EmotivDatumCrud(emf);
-        EmotivSessionCrud sessionCrud = new EmotivSessionCrud(emf);
-
-        EmotivSession session = new EmotivSession();
-        session.setName("Test");
-        session.setNotes(emotive.getSerial());
-
-        sessionCrud.create(session);
-
         // refactor to have an asynchronous runner
         for (Packet packet : emotive) {
+            database.receivePacket(packet);
             quality.receivePacket(packet);
             battery.receivePacket(packet);
             gyro.receivePacket(packet);
             sensors.receivePacket(packet);
-
-            long start = System.currentTimeMillis();
-            EmotivDatum datum = EmotivDatum.fromPacket(packet);
-            datum.setSession(session);
-
-            datumCrud.create(datum); // taking about 6 millis
-            long end = System.currentTimeMillis();
-            log.config("Persistence took " + (end - start));
         }
     }
 
@@ -96,7 +84,7 @@ public class Zoku {
             Class params[] = new Class[]{Window.class, Boolean.TYPE};
             Method method = util.getMethod("setWindowCanFullScreen", params);
             method.invoke(util, window, true);
-        } catch (ClassNotFoundException e1) {
+        } catch (ClassNotFoundException ignored) {
         } catch (Exception e) {
             log.log(Level.WARNING, "OS X Fullscreen FAIL", e);
         }

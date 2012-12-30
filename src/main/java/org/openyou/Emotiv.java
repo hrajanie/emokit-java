@@ -105,9 +105,11 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
                     byte[] bytes = new byte[EmotivHid.BUFSIZE];
                     byte lastCounter = -1;
                     while (!iterator.stopped()) {
+                        Thread.yield();
                         raw.poll(bytes);
 
                         long start = System.currentTimeMillis();
+
                         byte[] decrypted = cipher.doFinal(bytes);
 
                         // the counter is used to mixin battery and quality levels

@@ -38,6 +38,7 @@ final class EmotivHid implements Closeable {
         try {
             ClassPathLibraryLoader.loadNativeHIDLibrary();
             supportedConsumer.add(new byte[]{33, -1, 31, -1, 30, 0, 0, 0});
+            supportedConsumer.add(new byte[]{32, -1, 31, -1, 30, 0, 0, 0});
             supportedConsumer.add(new byte[]{-32, -1, 31, -1, 0, 0, 0, 0}); // unconfirmed
         } catch (Exception e) {
             throw new ExceptionInInitializerError(e);
