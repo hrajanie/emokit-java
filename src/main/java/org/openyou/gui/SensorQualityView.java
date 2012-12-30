@@ -27,8 +27,6 @@ import java.util.Map;
  */
 public class SensorQualityView extends JPanel implements Emotiv.PacketListener {
 
-    private final Config config = ConfigFactory.load().getConfig("org.openyou.gui.quality");
-    private final Config positions = config.getConfig("positions");
     private final BufferedImage image;
     private final Map<Sensor, Point> sensors = Maps.newHashMap();
     private final Font font = new Font("Verdana", Font.BOLD, 14);
@@ -41,11 +39,13 @@ public class SensorQualityView extends JPanel implements Emotiv.PacketListener {
 
     public SensorQualityView() {
         super(new BorderLayout());
+        Config config = ConfigFactory.load().getConfig("org.openyou.gui.quality");
 
         try {
             @Cleanup InputStream stream = getClass().getResourceAsStream(config.getString("image"));
             image = ImageIO.read(stream);
 
+            Config positions = config.getConfig("positions");
             for (Sensor sensor : Sensor.values()) {
                 if (sensor == Sensor.QUALITY)
                     continue;

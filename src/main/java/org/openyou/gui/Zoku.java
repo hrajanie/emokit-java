@@ -35,6 +35,7 @@ public class Zoku {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1200, 800);
         JPanel sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.PAGE_AXIS));
         sidebar.setBackground(Color.WHITE);
         frame.add(sidebar, BorderLayout.EAST);
 
@@ -42,8 +43,11 @@ public class Zoku {
         frame.add(quality, BorderLayout.CENTER);
 
         BatteryView battery = new BatteryView();
+        GyroView gyro = new GyroView();
+
         sidebar.add(new JLabel("Battery"));
         sidebar.add(battery);
+        sidebar.add(gyro);
 
         frame.setVisible(true);
 
@@ -57,12 +61,11 @@ public class Zoku {
 
         sessionCrud.create(session);
 
-        log.info("Persisted session");
-
         // refactor to have an asynchronous runner
         for (Packet packet : emotive) {
             quality.receivePacket(packet);
             battery.receivePacket(packet);
+            gyro.receivePacket(packet);
 
             long start = System.currentTimeMillis();
             EmotivDatum datum = EmotivDatum.fromPacket(packet);

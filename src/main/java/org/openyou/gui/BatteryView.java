@@ -8,6 +8,8 @@ import org.openyou.Packet;
 import javax.swing.*;
 
 /**
+ * Component that can listen for Emotiv packets and show the battery level.
+ *
  * @author Sam Halliday
  */
 public class BatteryView extends JProgressBar implements Emotiv.PacketListener {
