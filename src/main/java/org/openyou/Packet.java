@@ -1,11 +1,14 @@
 // Copyright Samuel Halliday 2012
 package org.openyou;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.util.Date;
 import java.util.EnumMap;
@@ -17,6 +20,8 @@ import java.util.Map;
  * This is not designed for easy persistence: clients are
  * advised to use their own persistent format or convert
  * to {@link org.openyou.jpa.EmotivDatum}.
+ * <p>
+ * Note: this comparator imposes orderings that are inconsistent with equals.
  *
  * @author Sam Halliday
  * @see <a href="https://github.com/openyou/emokit/blob/master/doc/emotiv_protocol.asciidoc">Emotiv Protocol</a>
@@ -25,7 +30,7 @@ import java.util.Map;
 @Log
 @Immutable
 @EqualsAndHashCode
-public final class Packet {
+public final class Packet implements Comparable<Packet> {
 
     private final long timestamp;
     private final int battery;
@@ -67,6 +72,18 @@ public final class Packet {
      */
     public Map<Sensor, Integer> getQuality() {
         return new EnumMap<Sensor, Integer>(quality);
+    }
+
+    /**
+     * @return
+     */
+    public Map<Sensor, Integer> getSensors() {
+        Map<Sensor, Integer> sensors = Maps.newEnumMap(Sensor.class);
+        for (Sensor sensor : Sensor.values()) {
+            if (sensor == Sensor.QUALITY) continue;
+            sensors.put(sensor, getSensor(sensor));
+        }
+        return sensors;
     }
 
     /**
@@ -141,6 +158,11 @@ public final class Packet {
             builder.append(")");
         }
         return builder.toString();
+    }
+
+    @Override
+    public int compareTo(Packet o) {
+        return (int)(timestamp - o.timestamp);
     }
 
     public enum Sensor {

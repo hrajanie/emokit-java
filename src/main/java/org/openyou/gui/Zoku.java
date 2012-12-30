@@ -1,6 +1,7 @@
 // Copyright Samuel Halliday 2012
 package org.openyou.gui;
 
+import com.google.common.base.Preconditions;
 import fommil.persistence.CrudDao;
 import lombok.extern.java.Log;
 import org.openyou.Emotiv;
@@ -13,6 +14,8 @@ import org.openyou.jpa.EmotivSessionCrud;
 import javax.persistence.EntityManagerFactory;
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Method;
+import java.util.logging.Level;
 
 /**
  * Zoku is a Swing GUI application for the acquisition of
@@ -31,6 +34,7 @@ public class Zoku {
         Emotiv emotive = new Emotiv();
 
         JFrame frame = new JFrame("Zoku");
+        enableOSXFullscreen(frame);
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1200, 800);
@@ -49,6 +53,9 @@ public class Zoku {
         sidebar.add(battery);
         sidebar.add(gyro);
 
+        SensorView sensors = new SensorView();
+        frame.add(sensors, BorderLayout.SOUTH);
+
         frame.setVisible(true);
 
         EntityManagerFactory emf = CrudDao.createEntityManagerFactory("ZokuPU");
@@ -66,6 +73,7 @@ public class Zoku {
             quality.receivePacket(packet);
             battery.receivePacket(packet);
             gyro.receivePacket(packet);
+            sensors.receivePacket(packet);
 
             long start = System.currentTimeMillis();
             EmotivDatum datum = EmotivDatum.fromPacket(packet);
@@ -74,6 +82,23 @@ public class Zoku {
             datumCrud.create(datum); // taking about 6 millis
             long end = System.currentTimeMillis();
             log.config("Persistence took " + (end - start));
+        }
+    }
+
+    /**
+     * @param window
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static void enableOSXFullscreen(Window window) {
+        Preconditions.checkNotNull(window);
+        try {
+            Class util = Class.forName("com.apple.eawt.FullScreenUtilities");
+            Class params[] = new Class[]{Window.class, Boolean.TYPE};
+            Method method = util.getMethod("setWindowCanFullScreen", params);
+            method.invoke(util, window, true);
+        } catch (ClassNotFoundException e1) {
+        } catch (Exception e) {
+            log.log(Level.WARNING, "OS X Fullscreen FAIL", e);
         }
     }
 
