@@ -25,9 +25,14 @@ public class GyroView extends JPanel implements Emotiv.PacketListener {
 
     private volatile int gyroX = xCorrection, gyroY = yCorrection;
 
+    public GyroView() {
+        setPreferredSize(new Dimension(200, 200));
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Dimension size = getSize();
+
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, size.width, size.height);
         g.setColor(Color.BLACK);
@@ -35,22 +40,22 @@ public class GyroView extends JPanel implements Emotiv.PacketListener {
         double x = (gyroX - xCorrection) / 127.0;
         double y = (gyroY - yCorrection) / 127.0;
 
-        int xs = Math.max(1, (int)Math.round(Math.abs(x * 10)));
-        ((Graphics2D)g).setStroke(new BasicStroke(xs));
+        int xs = Math.max(1, (int) Math.round(Math.abs(x * 10)));
+        ((Graphics2D) g).setStroke(new BasicStroke(xs));
         g.drawLine(
                 size.width / 2,
                 size.height / 2,
-                (int)Math.round(size.width / 2 + x * size.width / 2),
+                (int) Math.round(size.width / 2 + x * size.width / 2),
                 size.height / 2
         );
 
-        int ys = Math.max(1, (int)Math.round(Math.abs(y * 10)));
-        ((Graphics2D)g).setStroke(new BasicStroke(ys));
+        int ys = Math.max(1, (int) Math.round(Math.abs(y * 10)));
+        ((Graphics2D) g).setStroke(new BasicStroke(ys));
         g.drawLine(
                 size.width / 2,
                 size.height / 2,
                 size.width / 2,
-                (int)Math.round(size.height / 2 + y * size.height / 2)
+                (int) Math.round(size.height / 2 + y * size.height / 2)
         );
 
     }

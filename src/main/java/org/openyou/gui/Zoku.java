@@ -11,6 +11,7 @@ import org.openyou.jpa.EmotivJpaController;
 import javax.persistence.EntityManagerFactory;
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.logging.Level;
 
@@ -27,20 +28,16 @@ import java.util.logging.Level;
 @Log
 public class Zoku {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         EntityManagerFactory emf = CrudDao.createEntityManagerFactory("ZokuPU");
         EmotivJpaController database = new EmotivJpaController(emf);
-
-        Emotiv emotive = new Emotiv();
-
 
         JFrame frame = new JFrame("Zoku");
         enableOSXFullscreen(frame);
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1200, 800);
-        JPanel sidebar = new JPanel();
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.PAGE_AXIS));
+        JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Color.WHITE);
         frame.add(sidebar, BorderLayout.EAST);
 
@@ -48,28 +45,35 @@ public class Zoku {
         frame.add(quality, BorderLayout.CENTER);
 
         BatteryView battery = new BatteryView();
-        sidebar.add(new JLabel("Battery"));
-        sidebar.add(battery);
+        sidebar.add(battery, BorderLayout.NORTH);
 
         GyroView gyro = new GyroView();
-        sidebar.add(gyro);
+        sidebar.add(gyro, BorderLayout.SOUTH);
 
         SessionEditor editor = new SessionEditor();
         editor.setController(database);
-        sidebar.add(editor);
+        sidebar.add(editor, BorderLayout.CENTER);
 
         SensorView sensors = new SensorView();
         frame.add(sensors, BorderLayout.SOUTH);
 
         frame.setVisible(true);
 
-        // refactor to have an asynchronous runner
-        for (Packet packet : emotive) {
-            database.receivePacket(packet);
-            quality.receivePacket(packet);
-            battery.receivePacket(packet);
-            gyro.receivePacket(packet);
-            sensors.receivePacket(packet);
+        while (true) {
+            try {
+                // refactor to have an asynchronous runner
+                Emotiv emotive = new Emotiv();
+                for (Packet packet : emotive) {
+                    database.receivePacket(packet);
+                    quality.receivePacket(packet);
+                    battery.receivePacket(packet);
+                    gyro.receivePacket(packet);
+                    sensors.receivePacket(packet);
+                }
+            } catch (IOException e) {
+                log.log(Level.SEVERE, "", e);
+                System.exit(0);
+            }
         }
     }
 
