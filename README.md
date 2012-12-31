@@ -11,6 +11,9 @@ Thanks go to the following for reverse engineering, original code and assistance
 * [Kyle Machulis](http://github.com/qdot)
 * [Bill Schumacher](http://github.com/bschumacher)
 
+[![Zoku Screenshot](http://i46.tinypic.com/or16cy.jpg)](http://youtu.be/Ve7MEuuzXuY)
+
+*(click image for a video of the demonstration data acquisition application)*
 
 Installation
 ============
@@ -35,6 +38,9 @@ for (Packet packet : emotiv) {
 
 the special `Iterator` will continue until the EEG device is disconnected, or there are IO problems.
 If that happens, a new `Emotiv` instance can be obtained and polled.
+
+Several Java Swing GUI widgets are provided for use in your applications, as demonstrated in the
+bundled *Zoku* data acquisition application.
 
 
 Donations
