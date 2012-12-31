@@ -11,7 +11,7 @@ Thanks go to the following for reverse engineering, original code and assistance
 * [Kyle Machulis](http://github.com/qdot)
 * [Bill Schumacher](http://github.com/bschumacher)
 
-[![Zoku Screenshot](http://i46.tinypic.com/or16cy.jpg)](http://youtu.be/Ve7MEuuzXuY)
+[![Zoku Screenshot](http://i49.tinypic.com/295s5xy.jpg)](http://youtu.be/Ve7MEuuzXuY)
 
 *(click image for a video of the demonstration data acquisition application)*
 
