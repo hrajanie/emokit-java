@@ -16,3 +16,5 @@ project/plugins/project/
 
 .scala_dependencies
 *.iml
+/nbactions.xml
+/zoku/
