@@ -61,17 +61,9 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
     private final Map<Packet.Sensor, Integer> quality = Maps.newEnumMap(Packet.Sensor.class);
 
     private volatile int battery;
-
-    @Getter(lazy = true)
-    private final String serial = serial();
-
-    private String serial() {
-        try {
-            return raw.getSerial();
-        } catch (IOException e) {
-            return null;
-        }
-    }
+    
+    @Getter
+    private final String serial;
 
     /**
      * @throws IOException if there was a problem discovering the device.
@@ -85,6 +77,7 @@ public final class Emotiv implements Iterable<Packet>, Closeable {
         } catch (Exception e) {
             throw new IllegalStateException("no javax.crypto support");
         }
+        serial = raw.getSerial();
     }
 
     /**
